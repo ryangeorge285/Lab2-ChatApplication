@@ -1,0 +1,2 @@
+gcc chat_server.c -o chat_server
+./chat_server

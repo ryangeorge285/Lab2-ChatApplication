@@ -1,0 +1,2 @@
+ gcc chat_client.c -o chat_client
+ ./chat_client
