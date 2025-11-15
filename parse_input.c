@@ -15,12 +15,12 @@ void parse_input(const char *input, request *r){
     printf(" %s\n", cmd);
     char *remaining = strtok(NULL, "");
     char *recipient= strtok(remaining, " ");
+    printf(" %s\n", recipient);
 
 
 
     if(strcmp(cmd, "conn") == 0){
         r->type = REQ_CONN;
-        printf(" %s\n", recipient);
         if (recipient != NULL){
             strcpy(r->arg1, recipient);
         }
@@ -28,7 +28,6 @@ void parse_input(const char *input, request *r){
     }
     else if (strcmp(cmd, "say") == 0){
         r->type = REQ_SAY;
-        printf(" %s\n", recipient);
         if (recipient != NULL){
             strcpy(r->arg2, recipient);
         }
@@ -36,7 +35,6 @@ void parse_input(const char *input, request *r){
     }
     else if (strcmp(cmd, "sayto") == 0){
         r->type = REQ_SAYTO;
-        printf(" %s\n", recipient);
 
         if (recipient != NULL){
             strcpy(r->arg1, recipient);
@@ -51,21 +49,18 @@ void parse_input(const char *input, request *r){
     }
     else if (strcmp(cmd, "mute") == 0){
         r->type = REQ_MUTE;
-        printf(" %s\n", recipient);
         if (recipient != NULL){
             strcpy(r->arg1, recipient);
         }
     }
     else if (strcmp(cmd, "unmute") == 0){
         r->type = REQ_UNMUTE;
-        printf(" %s\n", recipient);
         if (recipient != NULL){
             strcpy(r->arg1, recipient);
         }
     }
     else if (strcmp(cmd, "rename") == 0){
         r->type = REQ_RENAME;
-        printf(" %s\n", recipient);
         if (recipient != NULL){
             strcpy(r->arg1, recipient);
         }
@@ -75,7 +70,6 @@ void parse_input(const char *input, request *r){
     }
     else if (strcmp(cmd, "kick") == 0){
         r->type = REQ_KICK;
-        printf(" %s\n", recipient);
         if (recipient != NULL){
             strcpy(r->arg1, recipient);
         }
