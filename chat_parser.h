@@ -32,14 +32,15 @@ void parse_input(const char *input, request *r)
     r->msg[0] = '\0';
 
     char line[1024];
+    char message[1024];
     strcpy(line, input);
 
     char *cmd = strtok(line, "$");
     printf("Parsed request: \n");
     printf(" %s\n", cmd);
     char *remaining = strtok(NULL, "");
+    strcpy(message, remaining);
     char *recipient = strtok(remaining, " ");
-    printf(" %s\n", recipient);
 
     if (strcmp(cmd, "conn") == 0)
     {
@@ -52,10 +53,11 @@ void parse_input(const char *input, request *r)
     else if (strcmp(cmd, "say") == 0)
     {
         r->type = REQ_SAY;
-        char *message = strtok(NULL, "");
-        if (message != NULL)
+        char *msg_ptr = message;
+        if (*msg_ptr== ' ') msg_ptr++;
+        if (msg_ptr != NULL)
         {
-            strcpy(r->msg, message);
+            strcpy(r->msg, msg_ptr);
         }
     }
     else if (strcmp(cmd, "sayto") == 0)

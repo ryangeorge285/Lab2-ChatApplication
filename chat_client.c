@@ -1,7 +1,7 @@
 
 #include <stdio.h>
 #include "udp.h"
-#include "chat.h"
+#include "chat_parser.h"
 
 #define CLIENT_PORT 10001
 
