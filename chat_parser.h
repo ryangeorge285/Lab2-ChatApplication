@@ -52,9 +52,10 @@ void parse_input(const char *input, request *r)
     else if (strcmp(cmd, "say") == 0)
     {
         r->type = REQ_SAY;
-        if (recipient != NULL)
+        char *message = strtok(NULL, "");
+        if (message != NULL)
         {
-            strcpy(r->msg, recipient);
+            strcpy(r->msg, message);
         }
     }
     else if (strcmp(cmd, "sayto") == 0)
