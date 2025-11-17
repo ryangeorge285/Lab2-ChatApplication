@@ -21,15 +21,15 @@ typedef enum
 typedef struct
 {
     request_type type;
-    char arg1[256];
-    char arg2[512];
+    char name[256];
+    char msg[512];
 } request;
 
 void parse_input(const char *input, request *r)
 {
     r->type = REQ_INVALID;
-    r->arg1[0] = '\0';
-    r->arg2[0] = '\0';
+    r->name[0] = '\0';
+    r->msg[0] = '\0';
 
     char line[1024];
     strcpy(line, input);
@@ -46,7 +46,7 @@ void parse_input(const char *input, request *r)
         r->type = REQ_CONN;
         if (recipient != NULL)
         {
-            strcpy(r->arg1, recipient);
+            strcpy(r->name, recipient);
         }
     }
     else if (strcmp(cmd, "say") == 0)
@@ -54,7 +54,7 @@ void parse_input(const char *input, request *r)
         r->type = REQ_SAY;
         if (recipient != NULL)
         {
-            strcpy(r->arg2, recipient);
+            strcpy(r->msg, recipient);
         }
     }
     else if (strcmp(cmd, "sayto") == 0)
@@ -63,14 +63,14 @@ void parse_input(const char *input, request *r)
 
         if (recipient != NULL)
         {
-            strcpy(r->arg1, recipient);
+            strcpy(r->name, recipient);
         }
 
-        char *msg = strtok(NULL, "");
-        printf(" %s\n", msg);
-        if (msg != NULL)
+        char *message = strtok(NULL, "");
+        printf(" %s\n", message);
+        if (message != NULL)
         {
-            strcpy(r->arg2, msg);
+            strcpy(r->msg, message);
         }
     }
     else if (strcmp(cmd, "mute") == 0)
@@ -78,7 +78,7 @@ void parse_input(const char *input, request *r)
         r->type = REQ_MUTE;
         if (recipient != NULL)
         {
-            strcpy(r->arg1, recipient);
+            strcpy(r->name, recipient);
         }
     }
     else if (strcmp(cmd, "unmute") == 0)
@@ -86,7 +86,7 @@ void parse_input(const char *input, request *r)
         r->type = REQ_UNMUTE;
         if (recipient != NULL)
         {
-            strcpy(r->arg1, recipient);
+            strcpy(r->name, recipient);
         }
     }
     else if (strcmp(cmd, "rename") == 0)
@@ -94,7 +94,7 @@ void parse_input(const char *input, request *r)
         r->type = REQ_RENAME;
         if (recipient != NULL)
         {
-            strcpy(r->arg1, recipient);
+            strcpy(r->name, recipient);
         }
     }
     else if (strcmp(cmd, "disconn") == 0)
@@ -106,7 +106,7 @@ void parse_input(const char *input, request *r)
         r->type = REQ_KICK;
         if (recipient != NULL)
         {
-            strcpy(r->arg1, recipient);
+            strcpy(r->name, recipient);
         }
     }
 }
