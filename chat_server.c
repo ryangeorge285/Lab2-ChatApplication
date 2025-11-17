@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "udp.h"
+#include "chat_parser.h"
 
 int main(int argc, char *argv[])
 {
@@ -21,7 +22,7 @@ int main(int argc, char *argv[])
         char client_request[BUFFER_SIZE], server_response[BUFFER_SIZE];
 
         // Demo code (remove later)
-        printf("Server is listening on port %d\n", SERVER_PORT);
+        // printf("Server is listening on port %d\n", SERVER_PORT);
 
         // Variable to store incoming client's IP address and port
         struct sockaddr_in client_address;
@@ -39,15 +40,17 @@ int main(int argc, char *argv[])
             strcat(server_response, client_request);
             strcat(server_response, "\n");
 
+            printf("Received request message: %s port:%d\n", client_request, ntohs(client_address.sin_port));
+
+            request current_request;
+            parse_input(client_request, &current_request);
+
             // This function writes back to the incoming client,
             // whose address is now available in client_address,
             // through the socket at sd.
             // (See details of the function in udp.h)
             rc = udp_socket_write(sd, &client_address, server_response, BUFFER_SIZE);
-
-            printf("Received request from client at port %d\n",
-                   ntohs(client_address.sin_port));
-            printf("Request served...\n");
+            printf("Request served...\n\n");
         }
     }
 
