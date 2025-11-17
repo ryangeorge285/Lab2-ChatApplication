@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "*.sv": "systemverilogheader",
+    "in.h": "c"
+  }
+}
