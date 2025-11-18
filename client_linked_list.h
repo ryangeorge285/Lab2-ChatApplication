@@ -7,7 +7,7 @@ typedef struct client_node
     char address_string[30];
     char name[256];
 
-    char muted[256][30];
+    struct sockaddr_in muted[256];
     int muted_count;
 
     struct client_node *next;

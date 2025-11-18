@@ -96,6 +96,23 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+int addr_equal(struct sockaddr_in *a, struct sockaddr_in *b)
+{
+    return a->sin_addr.s_addr == b->sin_addr.s_addr && a->sin_port == b->sin_port;
+}
+
+client_node *get_client_by_name(char *name)
+{
+    client_node *client = head;
+    while (client)
+    {
+        if (strcmp(client->name, name) == 0)
+            return client;
+        client = client->next;
+    }
+    return NULL;
+}
+
 client_node *get_client_from_address(struct sockaddr_in *addr)
 {
     client_node *connected_client = head;
@@ -129,13 +146,11 @@ void *handle_say(void *arg)
     char server_response[BUFFER_SIZE];
 
     client_node *sender = get_client_from_address(&args->client_address);
-    const char *sender_name = sender ? sender->name : "UNKNOWN";
 
     client_node *connected_client = head;
     while (connected_client != NULL)
     {
-        if (connected_client->address.sin_addr.s_addr == args->client_address.sin_addr.s_addr &&
-            connected_client->address.sin_port == args->client_address.sin_port)
+        if (addr_equal(&connected_client->address, &args->client_address))
         {
             connected_client = connected_client->next;
             continue;
@@ -144,7 +159,7 @@ void *handle_say(void *arg)
         int is_muted = 0;
         for (int i = 0; i < connected_client->muted_count; i++)
         {
-            if (strcmp(connected_client->muted[i], sender_name) == 0)
+            if (addr_equal(&connected_client->muted[i], &args->client_address))
             {
                 is_muted = 1;
                 break;
@@ -154,7 +169,7 @@ void *handle_say(void *arg)
         if (!is_muted)
         {
             printf("Saying %s to %s\n", args->req.msg, connected_client->name);
-            snprintf(server_response, BUFFER_SIZE, "%s: %s", sender_name, args->req.msg);
+            snprintf(server_response, BUFFER_SIZE, "%s: %s", sender->name, args->req.msg);
             udp_socket_write(args->sd, &connected_client->address, server_response, BUFFER_SIZE);
         }
 
@@ -171,31 +186,23 @@ void *handle_sayto(void *arg)
     char server_response[BUFFER_SIZE];
 
     client_node *sender = get_client_from_address(&args->client_address);
+    client_node *target = get_client_by_name(args->req.name);
 
-    client_node *connected_client = head;
-    while (connected_client != NULL)
+    int is_muted = 0;
+    for (int i = 0; i < target->muted_count; i++)
     {
-        if (strcmp(connected_client->name, args->req.name) == 0)
+        if (addr_equal(&target->muted[i], &target->address) == 0)
         {
-            int is_muted = 0;
-            for (int i = 0; i < connected_client->muted_count; i++)
-            {
-                if (strcmp(connected_client->muted[i], sender->name) == 0)
-                {
-                    is_muted = 1;
-                    break;
-                }
-            }
-
-            if (!is_muted)
-            {
-                printf("Saying %s to %s\n", args->req.msg, connected_client->name);
-                snprintf(server_response, BUFFER_SIZE, "%s: %s", sender->name, args->req.msg);
-                udp_socket_write(args->sd, &connected_client->address, server_response, BUFFER_SIZE);
-            }
+            is_muted = 1;
             break;
         }
-        connected_client = connected_client->next;
+    }
+
+    if (!is_muted)
+    {
+        printf("Saying %s to %s\n", args->req.msg, target->name);
+        snprintf(server_response, BUFFER_SIZE, "%s: %s", sender->name, args->req.msg);
+        udp_socket_write(args->sd, &target->address, server_response, BUFFER_SIZE);
     }
 
     free(args);
@@ -212,26 +219,34 @@ void *handle_disconnect(void *arg)
     client_node *connected_client = head;
     while (connected_client != NULL)
     {
-        for (int i = 0; i < connected_client->muted_count; i++)
+        if (strcmp(connected_client->name, args->req.name) == 0)
         {
-            if (strcmp(connected_client->muted[i], sender->name) == 0)
+            int is_muted = 0;
+            for (int i = 0; i < connected_client->muted_count; i++)
             {
-                for (int j = i; j < connected_client->muted_count - 1; j++)
+                if (addr_equal(&connected_client->muted[i], &args->client_address))
                 {
-                    strcpy(connected_client->muted[j], connected_client->muted[j + 1]);
+                    is_muted = 1;
+                    break;
                 }
-                connected_client->muted_count--;
-                i--;
             }
+
+            if (!is_muted)
+            {
+                printf("Saying %s to %s\n", args->req.msg, connected_client->name);
+                snprintf(server_response, BUFFER_SIZE, "%s: %s", sender ? sender->name : "UNKNOWN", args->req.msg);
+                udp_socket_write(args->sd, &connected_client->address, server_response, BUFFER_SIZE);
+            }
+            break;
         }
         connected_client = connected_client->next;
     }
 
     client_delete(&head, sender->name);
-    free(args);
-
     strcpy(server_response, "Disconnected. Bye!");
     udp_socket_write(args->sd, &connected_client->address, server_response, BUFFER_SIZE);
+
+    free(args);
     return NULL;
 }
 
@@ -241,9 +256,19 @@ void *handle_mute(void *arg)
     char server_response[BUFFER_SIZE];
 
     client_node *sender = get_client_from_address(&args->client_address);
+    client_node *target = get_client_by_name(args->req.name);
 
-    printf("Muting %s for %s\n", args->req.name, sender->name);
-    strcpy(sender->muted[sender->muted_count], args->req.name);
+    printf("Muting %s for %s\n", target->name, sender->name);
+    for (int i = 0; i < sender->muted_count; i++)
+    {
+        if (addr_equal(&sender->muted[i], &target->address))
+        {
+            free(args);
+            return NULL;
+        }
+    }
+
+    sender->muted[sender->muted_count] = target->address;
     sender->muted_count++;
 
     free(args);
@@ -256,19 +281,16 @@ void *handle_unmute(void *arg)
     char server_response[BUFFER_SIZE];
 
     client_node *sender = get_client_from_address(&args->client_address);
-    const char *sender_name = sender ? sender->name : "UNKNOWN";
+    client_node *target = get_client_by_name(args->req.name);
 
-    char muted[256][30];
-    printf("Unmuting %s for %s\n", args->req.name, sender->name);
-
+    printf("Unmuting %s for %s\n", target->name, sender->name);
     for (int i = 0; i < sender->muted_count; i++)
     {
-        if (strcmp(sender->muted[i], args->req.name) == 0)
+        if (addr_equal(&sender->muted[i], &target->address))
         {
             for (int j = i; j < sender->muted_count - 1; j++)
-            {
-                strcpy(sender->muted[j], sender->muted[j + 1]);
-            }
+                sender->muted[j] = sender->muted[j + 1];
+
             sender->muted_count--;
             i--;
         }
@@ -284,19 +306,11 @@ void *handle_rename(void *arg)
     char server_response[BUFFER_SIZE];
 
     client_node *sender = get_client_from_address(&args->client_address);
-
-    client_node *client = head;
-    while (client != NULL)
-    {
-        for (int muted_client = 0; muted_client < client->muted_count; muted_client++)
-        {
-            if (strcmp(client->muted[muted_client], sender->name) == 0)
-                strcpy(client->muted[muted_client], args->req.name);
-        }
-        client = client->next;
-    }
-
     strcpy(sender->name, args->req.name);
+
+    snprintf(server_response, BUFFER_SIZE, "Server: You are now renamed as %s", sender->name);
+    udp_socket_write(args->sd, &args->client_address, server_response, BUFFER_SIZE);
+
     free(args);
     return NULL;
 }
