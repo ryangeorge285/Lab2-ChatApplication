@@ -54,7 +54,8 @@ void parse_input(const char *input, request *r)
     {
         r->type = REQ_SAY;
         char *msg_ptr = message;
-        if (*msg_ptr== ' ') msg_ptr++;
+        if (*msg_ptr == ' ')
+            msg_ptr++;
         if (msg_ptr != NULL)
         {
             strcpy(r->msg, msg_ptr);
