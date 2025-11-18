@@ -22,6 +22,7 @@ void *handle_disconnect(void *arg);
 void *handle_mute(void *arg);
 void *handle_unmute(void *arg);
 void *handle_rename(void *arg);
+void *handle_kick(void *arg);
 
 int main(int argc, char *argv[])
 {
@@ -84,6 +85,11 @@ int main(int argc, char *argv[])
             else if (current_request.type == REQ_RENAME)
             {
                 pthread_create(&tid, NULL, handle_rename, (void *)args);
+                pthread_detach(tid);
+            }
+            else if (current_request.type == REQ_KICK)
+            {
+                pthread_create(&tid, NULL, handle_kick, (void *)args);
                 pthread_detach(tid);
             }
             else
@@ -216,35 +222,27 @@ void *handle_disconnect(void *arg)
 
     client_node *sender = get_client_from_address(&args->client_address);
 
-    client_node *connected_client = head;
-    while (connected_client != NULL)
+    client_node *client;
+    while (client != NULL)
     {
-        if (strcmp(connected_client->name, args->req.name) == 0)
+        for (int i = 0; i < client->muted_count; i++)
         {
-            int is_muted = 0;
-            for (int i = 0; i < connected_client->muted_count; i++)
+            if (addr_equal(&client->muted[i], &sender->address))
             {
-                if (addr_equal(&connected_client->muted[i], &args->client_address))
-                {
-                    is_muted = 1;
-                    break;
-                }
-            }
+                for (int j = i; j < sender->muted_count - 1; j++)
+                    sender->muted[j] = sender->muted[j + 1];
 
-            if (!is_muted)
-            {
-                printf("Saying %s to %s\n", args->req.msg, connected_client->name);
-                snprintf(server_response, BUFFER_SIZE, "%s: %s", sender ? sender->name : "UNKNOWN", args->req.msg);
-                udp_socket_write(args->sd, &connected_client->address, server_response, BUFFER_SIZE);
+                sender->muted_count--;
+                i--;
             }
-            break;
         }
-        connected_client = connected_client->next;
+        client = client->next;
     }
 
-    client_delete(&head, sender->name);
     strcpy(server_response, "Disconnected. Bye!");
-    udp_socket_write(args->sd, &connected_client->address, server_response, BUFFER_SIZE);
+    udp_socket_write(args->sd, &sender->address, server_response, BUFFER_SIZE);
+
+    client_delete(&head, sender->name);
 
     free(args);
     return NULL;
@@ -310,6 +308,47 @@ void *handle_rename(void *arg)
 
     snprintf(server_response, BUFFER_SIZE, "Server: You are now renamed as %s", sender->name);
     udp_socket_write(args->sd, &args->client_address, server_response, BUFFER_SIZE);
+
+    free(args);
+    return NULL;
+}
+
+void *handle_kick(void *arg)
+{
+    thread_args *args = (thread_args *)arg;
+    char server_response[BUFFER_SIZE];
+
+    client_node *sender = get_client_from_address(&args->client_address);
+
+    client_node *connected_client = head;
+    while (connected_client != NULL)
+    {
+        if (strcmp(connected_client->name, args->req.name) == 0)
+        {
+            int is_muted = 0;
+            for (int i = 0; i < connected_client->muted_count; i++)
+            {
+                if (addr_equal(&connected_client->muted[i], &args->client_address))
+                {
+                    is_muted = 1;
+                    break;
+                }
+            }
+
+            if (!is_muted)
+            {
+                printf("Saying %s to %s\n", args->req.msg, connected_client->name);
+                snprintf(server_response, BUFFER_SIZE, "%s: %s", sender ? sender->name : "UNKNOWN", args->req.msg);
+                udp_socket_write(args->sd, &connected_client->address, server_response, BUFFER_SIZE);
+            }
+            break;
+        }
+        connected_client = connected_client->next;
+    }
+
+    client_delete(&head, sender->name);
+    strcpy(server_response, "Disconnected. Bye!");
+    udp_socket_write(args->sd, &connected_client->address, server_response, BUFFER_SIZE);
 
     free(args);
     return NULL;

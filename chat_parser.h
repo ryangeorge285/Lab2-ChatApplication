@@ -39,7 +39,9 @@ void parse_input(const char *input, request *r)
     printf("Parsed request: \n");
     printf(" %s\n", cmd);
     char *remaining = strtok(NULL, "");
-    strcpy(message, remaining);
+    if (remaining)
+        strcpy(message, remaining);
+
     char *recipient = strtok(remaining, " ");
 
     if (strcmp(cmd, "conn") == 0)
