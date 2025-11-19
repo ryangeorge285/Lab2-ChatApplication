@@ -9,6 +9,7 @@
 int sd;
 struct sockaddr_in server_addr;
 
+volatile int running = 1; // flag to control the running state of threads
 
 void *sender_thread(void *arg);
 void *listener_thread(void *arg);
@@ -35,13 +36,48 @@ int main(int argc, char *argv[])
     // Creating two threads:
     pthread_t sender_tid, listener_tid;
     pthread_create(&sender_tid, NULL, sender_thread, NULL);
-    pthread_create(&listener_tid, NULL, listener_thread, NULL);
+    //pthread_create(&listener_tid, NULL, listener_thread, NULL);
 
 
     pthread_join(sender_tid, NULL);
-    pthread_join(listener_tid, NULL);
 
-    
+    running = 0; // signal the listener thread to stop
+    //pthread_join(listener_tid, NULL);
+
+    //close the socket
+    close(sd);
 
     return 0;
+}
+
+/*
+
+void *listener_thread(void *arg)
+{
+    char server_response[BUFFER_SIZE];
+    struct sockaddr_in from_addr;
+    // To Do: implement the listener thread
+}   
+*/
+
+void *sender_thread(void *arg)
+{
+    char client_request[BUFFER_SIZE];
+    while (running)
+    {
+
+        if (fgets(client_request, BUFFER_SIZE, stdin) == NULL) continue;
+        client_request[strcspn(client_request, "\n")] = '\0';
+
+        request req;
+        parse_input(client_request, &req);
+
+        //send the request to the server
+        udp_socket_write(sd, &server_addr, client_request, BUFFER_SIZE);
+        if (req.type == REQ_DISCONN)
+        {
+            running = 0; // signal to stop the sender thread
+        }
+    }
+    
 }
