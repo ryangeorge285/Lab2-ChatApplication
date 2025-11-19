@@ -8,6 +8,7 @@
 
 int sd;
 struct sockaddr_in server_addr;
+char logfile_name[64];
 
 volatile int running = 1; // flag to control the running state of threads
 
@@ -30,6 +31,19 @@ int main(int argc, char *argv[])
 
     int rc = set_socket_addr(&server_addr, "127.0.0.1", SERVER_PORT);
 
+    // Get the client's own port number
+    struct sockaddr_in me;
+    socklen_t len = sizeof(me);
+    getsockname(sd, (struct sockaddr *)&me, &len);
+    int my_port = ntohs(me.sin_port);
+
+
+    // build filename e.g. iChat_49123.txt
+    sprintf(logfile_name, "iChat_%d.txt", my_port);
+
+    printf("Your client log file: %s\n", logfile_name);
+
+
     // Storage for request and response messages
     char client_request[BUFFER_SIZE], server_response[BUFFER_SIZE];
 
@@ -46,7 +60,6 @@ int main(int argc, char *argv[])
 
     //close the socket
     close(sd);
-
     return 0;
 }
 
@@ -60,8 +73,19 @@ void *listener_thread(void *arg)
     while (running)
     {
         int rc = udp_socket_read(sd, &from_addr, server_response, BUFFER_SIZE);
+
+       
         if (rc > 0)
         {
+            //log the message to the logfile
+            FILE *fp = fopen(logfile_name, "a");
+            if(fp)
+            {
+                //append the message to the logfile
+                fprintf(fp, "%s\n", server_response);
+                fclose(fp);
+            }
+            
             printf("Server: %s\n", server_response);
         }
     }

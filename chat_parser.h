@@ -36,8 +36,8 @@ void parse_input(const char *input, request *r)
     strcpy(line, input);
 
     char *cmd = strtok(line, "$");
-    printf("Parsed request: \n");
-    printf(" %s\n", cmd);
+    //printf("Parsed request: \n");
+    //printf(" %s\n", cmd);
     char *remaining = strtok(NULL, "");
     if (remaining)
         strcpy(message, remaining);
@@ -73,7 +73,7 @@ void parse_input(const char *input, request *r)
         }
 
         char *message = strtok(NULL, "");
-        printf(" %s\n", message);
+        //printf(" %s\n", message);
         if (message != NULL)
         {
             strcpy(r->msg, message);
