@@ -18,7 +18,7 @@ void *listener_thread(void *arg);
 // client code
 int main(int argc, char *argv[])
 {
-    sd = udp_socket_open(CLIENT_PORT);
+    sd = udp_socket_open(0); // open a UDP socket on any available port
 
 
     // Initializing the server's address.
@@ -36,13 +36,13 @@ int main(int argc, char *argv[])
     // Creating two threads:
     pthread_t sender_tid, listener_tid;
     pthread_create(&sender_tid, NULL, sender_thread, NULL);
-    //pthread_create(&listener_tid, NULL, listener_thread, NULL);
+    pthread_create(&listener_tid, NULL, listener_thread, NULL);
 
 
     pthread_join(sender_tid, NULL);
 
     running = 0; // signal the listener thread to stop
-    //pthread_join(listener_tid, NULL);
+    pthread_join(listener_tid, NULL);
 
     //close the socket
     close(sd);
@@ -50,15 +50,24 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-/*
+
 
 void *listener_thread(void *arg)
 {
     char server_response[BUFFER_SIZE];
     struct sockaddr_in from_addr;
-    // To Do: implement the listener thread
+    // Listening for incoming messages from the server
+    while (running)
+    {
+        int rc = udp_socket_read(sd, &from_addr, server_response, BUFFER_SIZE);
+        if (rc > 0)
+        {
+            printf("Server: %s\n", server_response);
+        }
+    }
+
 }   
-*/
+
 
 void *sender_thread(void *arg)
 {
