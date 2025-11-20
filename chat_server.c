@@ -7,6 +7,7 @@
 #include "client_linked_list.h"
 
 client_node *head = NULL;
+pthread_rwlock_t clients_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 
 typedef struct
 {
@@ -26,6 +27,7 @@ void *handle_kick(void *arg);
 
 int main(int argc, char *argv[])
 {
+    pthread_rwlock_init(&clients_rwlock, NULL);
     int sd = udp_socket_open(SERVER_PORT);
 
     assert(sd > -1);
@@ -138,9 +140,13 @@ void *handle_connection(void *arg)
     thread_args *args = (thread_args *)arg;
     char server_response[BUFFER_SIZE];
 
+    pthread_rwlock_wrlock(&clients_rwlock);
+
     client_node *new_client = client_connect(&head, &args->client_address, args->req.name);
     snprintf(server_response, BUFFER_SIZE, "Hi %s, you have been connected!", new_client->name);
     udp_socket_write(args->sd, &args->client_address, server_response, BUFFER_SIZE);
+
+    pthread_rwlock_unlock(&clients_rwlock);
 
     free(args);
     return NULL;
@@ -151,17 +157,13 @@ void *handle_say(void *arg)
     thread_args *args = (thread_args *)arg;
     char server_response[BUFFER_SIZE];
 
+    pthread_rwlock_rdlock(&clients_rwlock);
+
     client_node *sender = get_client_from_address(&args->client_address);
 
     client_node *connected_client = head;
     while (connected_client != NULL)
     {
-        if (addr_equal(&connected_client->address, &args->client_address))
-        {
-            connected_client = connected_client->next;
-            continue;
-        }
-
         int is_muted = 0;
         for (int i = 0; i < connected_client->muted_count; i++)
         {
@@ -182,6 +184,8 @@ void *handle_say(void *arg)
         connected_client = connected_client->next;
     }
 
+    pthread_rwlock_unlock(&clients_rwlock);
+
     free(args);
     return NULL;
 }
@@ -191,13 +195,15 @@ void *handle_sayto(void *arg)
     thread_args *args = (thread_args *)arg;
     char server_response[BUFFER_SIZE];
 
+    pthread_rwlock_rdlock(&clients_rwlock);
+
     client_node *sender = get_client_from_address(&args->client_address);
     client_node *target = get_client_by_name(args->req.name);
 
     int is_muted = 0;
     for (int i = 0; i < target->muted_count; i++)
     {
-        if (addr_equal(&target->muted[i], &target->address) == 0)
+        if (addr_equal(&target->muted[i], &sender->address))
         {
             is_muted = 1;
             break;
@@ -211,6 +217,8 @@ void *handle_sayto(void *arg)
         udp_socket_write(args->sd, &target->address, server_response, BUFFER_SIZE);
     }
 
+    pthread_rwlock_unlock(&clients_rwlock);
+
     free(args);
     return NULL;
 }
@@ -220,19 +228,21 @@ void *handle_disconnect(void *arg)
     thread_args *args = (thread_args *)arg;
     char server_response[BUFFER_SIZE];
 
+    pthread_rwlock_wrlock(&clients_rwlock);
+
     client_node *sender = get_client_from_address(&args->client_address);
 
-    client_node *client;
+    client_node *client = head;
     while (client != NULL)
     {
         for (int i = 0; i < client->muted_count; i++)
         {
             if (addr_equal(&client->muted[i], &sender->address))
             {
-                for (int j = i; j < sender->muted_count - 1; j++)
-                    sender->muted[j] = sender->muted[j + 1];
+                for (int j = i; j < client->muted_count - 1; j++)
+                    client->muted[j] = client->muted[j + 1];
 
-                sender->muted_count--;
+                client->muted_count--;
                 i--;
             }
         }
@@ -244,6 +254,8 @@ void *handle_disconnect(void *arg)
 
     client_delete(&head, sender->name);
 
+    pthread_rwlock_unlock(&clients_rwlock);
+
     free(args);
     return NULL;
 }
@@ -253,6 +265,8 @@ void *handle_mute(void *arg)
     thread_args *args = (thread_args *)arg;
     char server_response[BUFFER_SIZE];
 
+    pthread_rwlock_wrlock(&clients_rwlock);
+
     client_node *sender = get_client_from_address(&args->client_address);
     client_node *target = get_client_by_name(args->req.name);
 
@@ -261,6 +275,7 @@ void *handle_mute(void *arg)
     {
         if (addr_equal(&sender->muted[i], &target->address))
         {
+            pthread_rwlock_unlock(&clients_rwlock);
             free(args);
             return NULL;
         }
@@ -268,6 +283,8 @@ void *handle_mute(void *arg)
 
     sender->muted[sender->muted_count] = target->address;
     sender->muted_count++;
+
+    pthread_rwlock_unlock(&clients_rwlock);
 
     free(args);
     return NULL;
@@ -277,6 +294,8 @@ void *handle_unmute(void *arg)
 {
     thread_args *args = (thread_args *)arg;
     char server_response[BUFFER_SIZE];
+
+    pthread_rwlock_wrlock(&clients_rwlock);
 
     client_node *sender = get_client_from_address(&args->client_address);
     client_node *target = get_client_by_name(args->req.name);
@@ -294,6 +313,8 @@ void *handle_unmute(void *arg)
         }
     }
 
+    pthread_rwlock_unlock(&clients_rwlock);
+
     free(args);
     return NULL;
 }
@@ -303,11 +324,25 @@ void *handle_rename(void *arg)
     thread_args *args = (thread_args *)arg;
     char server_response[BUFFER_SIZE];
 
+    pthread_rwlock_wrlock(&clients_rwlock);
+
     client_node *sender = get_client_from_address(&args->client_address);
+    if (get_client_by_name(args->req.name) != NULL)
+    {
+        snprintf(server_response, BUFFER_SIZE, "Server: The name %s is already taken.", args->req.name);
+        udp_socket_write(args->sd, &args->client_address, server_response, BUFFER_SIZE);
+
+        pthread_rwlock_unlock(&clients_rwlock);
+        free(args);
+        return NULL;
+    }
+
     strcpy(sender->name, args->req.name);
 
     snprintf(server_response, BUFFER_SIZE, "Server: You are now renamed as %s", sender->name);
     udp_socket_write(args->sd, &args->client_address, server_response, BUFFER_SIZE);
+
+    pthread_rwlock_unlock(&clients_rwlock);
 
     free(args);
     return NULL;
@@ -318,37 +353,52 @@ void *handle_kick(void *arg)
     thread_args *args = (thread_args *)arg;
     char server_response[BUFFER_SIZE];
 
-    client_node *sender = get_client_from_address(&args->client_address);
+    pthread_rwlock_wrlock(&clients_rwlock);
 
-    client_node *connected_client = head;
-    while (connected_client != NULL)
+    if (ntohs(args->client_address.sin_port) != 6666)
     {
-        if (strcmp(connected_client->name, args->req.name) == 0)
-        {
-            int is_muted = 0;
-            for (int i = 0; i < connected_client->muted_count; i++)
-            {
-                if (addr_equal(&connected_client->muted[i], &args->client_address))
-                {
-                    is_muted = 1;
-                    break;
-                }
-            }
+        char server_response[BUFFER_SIZE];
+        snprintf(server_response, BUFFER_SIZE, "Server: You are not allowed to use /kick.");
+        udp_socket_write(args->sd, &args->client_address, server_response, BUFFER_SIZE);
 
-            if (!is_muted)
-            {
-                printf("Saying %s to %s\n", args->req.msg, connected_client->name);
-                snprintf(server_response, BUFFER_SIZE, "%s: %s", sender ? sender->name : "UNKNOWN", args->req.msg);
-                udp_socket_write(args->sd, &connected_client->address, server_response, BUFFER_SIZE);
-            }
-            break;
-        }
-        connected_client = connected_client->next;
+        pthread_rwlock_unlock(&clients_rwlock);
+        free(args);
+        return NULL;
     }
 
-    client_delete(&head, sender->name);
-    strcpy(server_response, "Disconnected. Bye!");
-    udp_socket_write(args->sd, &connected_client->address, server_response, BUFFER_SIZE);
+    client_node *target = get_client_by_name(args->req.name);
+
+    client_node *client = head;
+    while (client != NULL)
+    {
+        for (int i = 0; i < client->muted_count; i++)
+        {
+            if (addr_equal(&client->muted[i], &target->address))
+            {
+                for (int j = i; j < client->muted_count - 1; j++)
+                    client->muted[j] = client->muted[j + 1];
+
+                client->muted_count--;
+                i--;
+            }
+        }
+        client = client->next;
+    }
+
+    strcpy(server_response, "You have been kicked out of the server!!!");
+    udp_socket_write(args->sd, &target->address, server_response, BUFFER_SIZE);
+
+    snprintf(server_response, BUFFER_SIZE, "Kicked %s from the server!", target->name);
+    client_delete(&head, target->name);
+
+    client = head;
+    while (client != NULL)
+    {
+        udp_socket_write(args->sd, &client->address, server_response, BUFFER_SIZE);
+        client = client->next;
+    }
+
+    pthread_rwlock_unlock(&clients_rwlock);
 
     free(args);
     return NULL;
