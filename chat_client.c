@@ -15,19 +15,16 @@ volatile int running = 1; // flag to control the running state of threads
 void *sender_thread(void *arg);
 void *listener_thread(void *arg);
 
-
 // client code
 int main(int argc, char *argv[])
 {
     sd = udp_socket_open(0); // open a UDP socket on any available port
-
 
     // Initializing the server's address.
     // We are currently running the server on localhost (127.0.0.1).
     // You can change this to a different IP address
     // when running the server on a different machine.
     // (See details of the function in udp.h)
-
 
     int rc = set_socket_addr(&server_addr, "127.0.0.1", SERVER_PORT);
 
@@ -37,12 +34,10 @@ int main(int argc, char *argv[])
     getsockname(sd, (struct sockaddr *)&me, &len);
     int my_port = ntohs(me.sin_port);
 
-
     // build filename e.g. iChat_49123.txt
     sprintf(logfile_name, "iChat_%d.txt", my_port);
 
     printf("Your client log file: %s\n", logfile_name);
-
 
     // Storage for request and response messages
     char client_request[BUFFER_SIZE], server_response[BUFFER_SIZE];
@@ -52,18 +47,15 @@ int main(int argc, char *argv[])
     pthread_create(&sender_tid, NULL, sender_thread, NULL);
     pthread_create(&listener_tid, NULL, listener_thread, NULL);
 
-
     pthread_join(sender_tid, NULL);
 
     running = 0; // signal the listener thread to stop
     pthread_join(listener_tid, NULL);
 
-    //close the socket
+    // close the socket
     close(sd);
     return 0;
 }
-
-
 
 void *listener_thread(void *arg)
 {
@@ -74,24 +66,22 @@ void *listener_thread(void *arg)
     {
         int rc = udp_socket_read(sd, &from_addr, server_response, BUFFER_SIZE);
 
-       
         if (rc > 0)
         {
-            //log the message to the logfile
+            // log the message to the logfile
             FILE *fp = fopen(logfile_name, "a");
-            if(fp)
+            if (fp)
             {
-                //append the message to the logfile
+                // append the message to the logfile
                 fprintf(fp, "%s\n", server_response);
                 fclose(fp);
             }
-            
-            printf("Server: %s\n", server_response);
+
+            printf("%s\n", server_response);
         }
     }
-
-}   
-
+    return NULL;
+}
 
 void *sender_thread(void *arg)
 {
@@ -99,18 +89,19 @@ void *sender_thread(void *arg)
     while (running)
     {
 
-        if (fgets(client_request, BUFFER_SIZE, stdin) == NULL) continue;
+        if (fgets(client_request, BUFFER_SIZE, stdin) == NULL)
+            continue;
         client_request[strcspn(client_request, "\n")] = '\0';
 
         request req;
         parse_input(client_request, &req);
 
-        //send the request to the server
+        // send the request to the server
         udp_socket_write(sd, &server_addr, client_request, BUFFER_SIZE);
         if (req.type == REQ_DISCONN)
         {
             running = 0; // signal to stop the sender thread
         }
     }
-    
+    return NULL;
 }
