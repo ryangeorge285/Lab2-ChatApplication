@@ -5,6 +5,9 @@
 #include "udp.h"
 #include "chat_parser.h"
 #include "client_linked_list.h"
+#include "recent_message_buffer.h"
+
+#define RMB_BUFFER_SIZE 512
 
 client_node *head = NULL;
 pthread_rwlock_t clients_rwlock = PTHREAD_RWLOCK_INITIALIZER;
@@ -146,6 +149,19 @@ void *handle_connection(void *arg)
     snprintf(server_response, BUFFER_SIZE, "Hi %s, you have been connected!", new_client->name);
     udp_socket_write(args->sd, &args->client_address, server_response, BUFFER_SIZE);
 
+    char msgs[MAX_RECENT_MESSAGES][RMB_BUFFER_SIZE];
+    int count = rmb_get_messages(msgs);
+    if (count == 0)
+        strcpy(server_response, "There are no previous messages available");
+    else
+        snprintf(server_response, BUFFER_SIZE, "Previous %i messages:\n", count);
+
+    udp_socket_write(args->sd, &args->client_address, server_response, BUFFER_SIZE);
+    for (int i = 0; i < count; ++i)
+    {
+        udp_socket_write(args->sd, &args->client_address, msgs[i], RMB_BUFFER_SIZE);
+    }
+
     pthread_rwlock_unlock(&clients_rwlock);
 
     free(args);
@@ -184,6 +200,9 @@ void *handle_say(void *arg)
         connected_client = connected_client->next;
     }
 
+    char buf[RMB_BUFFER_SIZE];
+    snprintf(buf, RMB_BUFFER_SIZE, "%s: %s", sender->name, args->req.msg);
+    rmb_add_message(buf);
     pthread_rwlock_unlock(&clients_rwlock);
 
     free(args);
