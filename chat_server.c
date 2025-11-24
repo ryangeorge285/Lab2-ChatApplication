@@ -31,6 +31,8 @@ void *handle_kick(void *arg);
 int main(int argc, char *argv[])
 {
     pthread_rwlock_init(&clients_rwlock, NULL);
+    rmb_init();
+
     int sd = udp_socket_open(SERVER_PORT);
 
     assert(sd > -1);
