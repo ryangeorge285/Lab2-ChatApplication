@@ -1,5 +1,9 @@
+#ifndef CLIENT_TYPE_H
+#define CLIENT_TYPE_H
+
 #include <netinet/in.h>
 #include <stdio.h>
+#include <time.h>
 
 typedef struct client_node
 {
@@ -18,3 +22,5 @@ typedef struct client_connection_status
     struct sockaddr_in *address;
     time_t last_ping;
 } client_connection_status;
+
+#endif

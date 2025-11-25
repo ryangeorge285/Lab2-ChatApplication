@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <string.h>
 #include "udp.h"
 #include "chat_parser.h"
 #include <pthread.h>
@@ -68,6 +69,19 @@ void *listener_thread(void *arg)
 
         if (rc > 0)
         {
+            if (rc >= BUFFER_SIZE)
+                server_response[BUFFER_SIZE - 1] = '\0';
+            else
+                server_response[rc] = '\0';
+
+            if (strcmp(server_response, "ping$") == 0)
+            {
+                char client_request[BUFFER_SIZE];
+                strcpy(client_request, "ret-ping$");
+                udp_socket_write(sd, &server_addr, client_request, BUFFER_SIZE);
+                continue;
+            }
+
             // log the message to the logfile
             FILE *fp = fopen(logfile_name, "a");
             if (fp)

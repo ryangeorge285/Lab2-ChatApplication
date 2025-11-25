@@ -1,16 +1,22 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
+#include <time.h>
 #include "udp.h"
 #include "chat_parser.h"
 #include "client_linked_list.h"
 #include "recent_message_buffer.h"
+#include "client_heap.h"
 
 #define RMB_BUFFER_SIZE 512
+#define INACTIVITY_THRESHOLD_SECONDS 5 * 60
+#define PING_RESPONSE_WAIT_SECONDS 5
 
 client_node *head = NULL;
 pthread_rwlock_t clients_rwlock = PTHREAD_RWLOCK_INITIALIZER;
+int server_socket = -1;
 
 typedef struct
 {
@@ -27,6 +33,11 @@ void *handle_mute(void *arg);
 void *handle_unmute(void *arg);
 void *handle_rename(void *arg);
 void *handle_kick(void *arg);
+void *handle_ret_ping(void *arg);
+
+void *monitor_inactivity(void *arg);
+void remove_client_from_muted_lists(struct sockaddr_in *target_addr);
+void refresh_client_activity(struct sockaddr_in *address);
 
 int main(int argc, char *argv[])
 {
@@ -36,6 +47,11 @@ int main(int argc, char *argv[])
     int sd = udp_socket_open(SERVER_PORT);
 
     assert(sd > -1);
+    server_socket = sd;
+
+    pthread_t monitor_tid;
+    pthread_create(&monitor_tid, NULL, monitor_inactivity, NULL);
+    pthread_detach(monitor_tid);
 
     // Server main loop
     while (1)
@@ -99,6 +115,11 @@ int main(int argc, char *argv[])
                 pthread_create(&tid, NULL, handle_kick, (void *)args);
                 pthread_detach(tid);
             }
+            else if (current_request.type == REQ_RET_PING)
+            {
+                pthread_create(&tid, NULL, handle_ret_ping, (void *)args);
+                pthread_detach(tid);
+            }
             else
             {
                 printf("An unknown request was sent");
@@ -140,6 +161,31 @@ client_node *get_client_from_address(struct sockaddr_in *addr)
     return NULL;
 }
 
+void remove_client_from_muted_lists(struct sockaddr_in *target_addr)
+{
+    client_node *client = head;
+    while (client != NULL)
+    {
+        for (int i = 0; i < client->muted_count; i++)
+        {
+            if (addr_equal(&client->muted[i], target_addr))
+            {
+                for (int j = i; j < client->muted_count - 1; j++)
+                    client->muted[j] = client->muted[j + 1];
+
+                client->muted_count--;
+                i--;
+            }
+        }
+        client = client->next;
+    }
+}
+
+void refresh_client_activity(struct sockaddr_in *address)
+{
+    connection_status_update(address, time(NULL));
+}
+
 void *handle_connection(void *arg)
 {
     thread_args *args = (thread_args *)arg;
@@ -148,6 +194,8 @@ void *handle_connection(void *arg)
     pthread_rwlock_wrlock(&clients_rwlock);
 
     client_node *new_client = client_connect(&head, &args->client_address, args->req.name);
+    client_connection_status status = {.address = &new_client->address, .last_ping = time(NULL)};
+    connections_status_insert(status);
     snprintf(server_response, BUFFER_SIZE, "Hi %s, you have been connected!", new_client->name);
     udp_socket_write(args->sd, &args->client_address, server_response, BUFFER_SIZE);
 
@@ -170,6 +218,92 @@ void *handle_connection(void *arg)
     return NULL;
 }
 
+void *handle_ret_ping(void *arg)
+{
+    thread_args *args = (thread_args *)arg;
+
+    pthread_rwlock_rdlock(&clients_rwlock);
+
+    client_node *client = get_client_from_address(&args->client_address);
+    if (client != NULL)
+    {
+        refresh_client_activity(&client->address);
+    }
+
+    pthread_rwlock_unlock(&clients_rwlock);
+
+    free(args);
+    return NULL;
+}
+
+void *monitor_inactivity(void *arg)
+{
+    while (1)
+    {
+        client_connection_status *status = top();
+        if (status == NULL)
+        {
+            sleep(1);
+            continue;
+        }
+
+        struct sockaddr_in *inactive_addr = status->address;
+        time_t now = time(NULL);
+        double idle_seconds = difftime(now, status->last_ping);
+
+        if (idle_seconds < INACTIVITY_THRESHOLD_SECONDS)
+        {
+            sleep(1);
+            continue;
+        }
+
+        char ping_message[BUFFER_SIZE];
+        strcpy(ping_message, "ping$");
+        udp_socket_write(server_socket, inactive_addr, ping_message, BUFFER_SIZE);
+
+        sleep(PING_RESPONSE_WAIT_SECONDS);
+
+        client_connection_status *updated_status = connection_status_find(inactive_addr);
+        if (updated_status == NULL)
+        {
+            continue;
+        }
+
+        now = time(NULL);
+        idle_seconds = difftime(now, updated_status->last_ping);
+
+        if (idle_seconds < INACTIVITY_THRESHOLD_SECONDS)
+        {
+            continue;
+        }
+
+        pthread_rwlock_wrlock(&clients_rwlock);
+
+        client_node *inactive_client = get_client_from_address(inactive_addr);
+        if (inactive_client != NULL)
+        {
+            char server_response[BUFFER_SIZE];
+            snprintf(server_response, BUFFER_SIZE, "Server: %s has been disconnected due to inactivity.", inactive_client->name);
+
+            udp_socket_write(server_socket, &inactive_client->address, "Disconnected due to inactivity", BUFFER_SIZE);
+            remove_client_from_muted_lists(&inactive_client->address);
+            connection_status_delete(inactive_addr);
+            client_delete(&head, inactive_client->name);
+
+            client_node *client = head;
+            while (client != NULL)
+            {
+                udp_socket_write(server_socket, &client->address, server_response, BUFFER_SIZE);
+                client = client->next;
+            }
+        }
+
+        pthread_rwlock_unlock(&clients_rwlock);
+    }
+
+    return NULL;
+}
+
 void *handle_say(void *arg)
 {
     thread_args *args = (thread_args *)arg;
@@ -178,6 +312,7 @@ void *handle_say(void *arg)
     pthread_rwlock_rdlock(&clients_rwlock);
 
     client_node *sender = get_client_from_address(&args->client_address);
+    refresh_client_activity(&sender->address);
 
     client_node *connected_client = head;
     while (connected_client != NULL)
@@ -220,6 +355,7 @@ void *handle_sayto(void *arg)
 
     client_node *sender = get_client_from_address(&args->client_address);
     client_node *target = get_client_by_name(args->req.name);
+    refresh_client_activity(&sender->address);
 
     int is_muted = 0;
     for (int i = 0; i < target->muted_count; i++)
@@ -252,27 +388,12 @@ void *handle_disconnect(void *arg)
     pthread_rwlock_wrlock(&clients_rwlock);
 
     client_node *sender = get_client_from_address(&args->client_address);
-
-    client_node *client = head;
-    while (client != NULL)
-    {
-        for (int i = 0; i < client->muted_count; i++)
-        {
-            if (addr_equal(&client->muted[i], &sender->address))
-            {
-                for (int j = i; j < client->muted_count - 1; j++)
-                    client->muted[j] = client->muted[j + 1];
-
-                client->muted_count--;
-                i--;
-            }
-        }
-        client = client->next;
-    }
+    remove_client_from_muted_lists(&sender->address);
 
     strcpy(server_response, "Disconnected. Bye!");
     udp_socket_write(args->sd, &sender->address, server_response, BUFFER_SIZE);
 
+    connection_status_delete(&sender->address);
     client_delete(&head, sender->name);
 
     pthread_rwlock_unlock(&clients_rwlock);
@@ -290,6 +411,7 @@ void *handle_mute(void *arg)
 
     client_node *sender = get_client_from_address(&args->client_address);
     client_node *target = get_client_by_name(args->req.name);
+    refresh_client_activity(&sender->address);
 
     printf("Muting %s for %s\n", target->name, sender->name);
     for (int i = 0; i < sender->muted_count; i++)
@@ -320,6 +442,7 @@ void *handle_unmute(void *arg)
 
     client_node *sender = get_client_from_address(&args->client_address);
     client_node *target = get_client_by_name(args->req.name);
+    refresh_client_activity(&sender->address);
 
     printf("Unmuting %s for %s\n", target->name, sender->name);
     for (int i = 0; i < sender->muted_count; i++)
@@ -348,6 +471,7 @@ void *handle_rename(void *arg)
     pthread_rwlock_wrlock(&clients_rwlock);
 
     client_node *sender = get_client_from_address(&args->client_address);
+    refresh_client_activity(&sender->address);
     if (get_client_by_name(args->req.name) != NULL)
     {
         snprintf(server_response, BUFFER_SIZE, "Server: The name %s is already taken.", args->req.name);
@@ -376,6 +500,9 @@ void *handle_kick(void *arg)
 
     pthread_rwlock_wrlock(&clients_rwlock);
 
+    client_node *sender = get_client_from_address(&args->client_address);
+    refresh_client_activity(&sender->address);
+
     if (ntohs(args->client_address.sin_port) != 6666)
     {
         char server_response[BUFFER_SIZE];
@@ -389,30 +516,16 @@ void *handle_kick(void *arg)
 
     client_node *target = get_client_by_name(args->req.name);
 
-    client_node *client = head;
-    while (client != NULL)
-    {
-        for (int i = 0; i < client->muted_count; i++)
-        {
-            if (addr_equal(&client->muted[i], &target->address))
-            {
-                for (int j = i; j < client->muted_count - 1; j++)
-                    client->muted[j] = client->muted[j + 1];
-
-                client->muted_count--;
-                i--;
-            }
-        }
-        client = client->next;
-    }
+    remove_client_from_muted_lists(&target->address);
 
     strcpy(server_response, "You have been kicked out of the server!!!");
     udp_socket_write(args->sd, &target->address, server_response, BUFFER_SIZE);
 
+    connection_status_delete(&target->address);
     snprintf(server_response, BUFFER_SIZE, "Kicked %s from the server!", target->name);
     client_delete(&head, target->name);
 
-    client = head;
+    client_node *client = head;
     while (client != NULL)
     {
         udp_socket_write(args->sd, &client->address, server_response, BUFFER_SIZE);

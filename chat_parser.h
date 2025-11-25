@@ -13,6 +13,7 @@ typedef enum
     REQ_RENAME,
     REQ_DISCONN,
     REQ_KICK,
+    REQ_RET_PING,
     REQ_INVALID
 } request_type;
 
@@ -114,5 +115,9 @@ void parse_input(const char *input, request *r)
         {
             strcpy(r->name, recipient);
         }
+    }
+    else if (strcmp(cmd, "ret-ping") == 0)
+    {
+        r->type = REQ_RET_PING;
     }
 }
