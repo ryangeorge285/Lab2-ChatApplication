@@ -69,11 +69,6 @@ void *listener_thread(void *arg)
 
         if (rc > 0)
         {
-            if (rc >= BUFFER_SIZE)
-                server_response[BUFFER_SIZE - 1] = '\0';
-            else
-                server_response[rc] = '\0';
-
             if (strcmp(server_response, "ping$") == 0)
             {
                 char client_request[BUFFER_SIZE];

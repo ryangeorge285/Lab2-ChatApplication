@@ -2,10 +2,12 @@
 #include <stdio.h>
 #include "client_type.h"
 
+// Adds a new client to the linked list
 client_node *client_connect(client_node **head, struct sockaddr_in *new_address, char *name)
 {
     client_node *new_client = (client_node *)malloc(sizeof(client_node));
 
+    // Initialises base data
     new_client->address = *new_address;
     new_client->muted_count = 0;
 
@@ -20,6 +22,7 @@ client_node *client_connect(client_node **head, struct sockaddr_in *new_address,
     return new_client;
 }
 
+// Deletes a client from the linked list
 int client_delete(client_node **head, char *name)
 {
     client_node *current = *head;

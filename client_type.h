@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <time.h>
 
+// Client node type for linked list
 typedef struct client_node
 {
     struct sockaddr_in address;
@@ -17,6 +18,7 @@ typedef struct client_node
     struct client_node *next;
 } client_node;
 
+// Client connection status type for min heap
 typedef struct client_connection_status
 {
     struct sockaddr_in *address;

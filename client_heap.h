@@ -5,10 +5,12 @@
 // Based on the implementation from https://www.geeksforgeeks.org/c/c-program-to-implement-min-heap/
 
 #define MAX_CLIENTS 200
-client_connection_status heap[MAX_CLIENTS];
 
+// Using a static array base heap for simplicity
+client_connection_status heap[MAX_CLIENTS];
 int num_clients = 0;
 
+// Swap helper
 void swap(client_connection_status *a, client_connection_status *b)
 {
     client_connection_status temp = *a;
@@ -16,6 +18,7 @@ void swap(client_connection_status *a, client_connection_status *b)
     *b = temp;
 }
 
+// Inserts a new client to monitor into the min heap
 void connections_status_insert(client_connection_status val)
 {
     if (num_clients >= MAX_CLIENTS)
@@ -34,6 +37,7 @@ void connections_status_insert(client_connection_status val)
     }
 }
 
+// Deletes a kicked or disconnected client from the linked list
 void connection_status_delete(struct sockaddr_in *address)
 {
     int index = -1;
@@ -87,6 +91,7 @@ void connection_status_delete(struct sockaddr_in *address)
     }
 }
 
+// Finds the client that was heard from the longest time ago
 client_connection_status *top()
 {
     if (num_clients > 0)
@@ -94,6 +99,7 @@ client_connection_status *top()
     return NULL;
 }
 
+// Returns the connection status based on an address
 client_connection_status *connection_status_find(struct sockaddr_in *address)
 {
     for (int i = 0; i < num_clients; i++)
@@ -104,6 +110,7 @@ client_connection_status *connection_status_find(struct sockaddr_in *address)
     return NULL;
 }
 
+// When a successful ping has been made, update the ping
 void connection_status_update(struct sockaddr_in *address, time_t last_ping)
 {
     connection_status_delete(address);
@@ -111,5 +118,6 @@ void connection_status_update(struct sockaddr_in *address, time_t last_ping)
     client_connection_status status;
     status.address = address;
     status.last_ping = last_ping;
+
     connections_status_insert(status);
 }
