@@ -1,17 +1,6 @@
 #include <netinet/in.h>
 #include <stdio.h>
-
-typedef struct client_node
-{
-    struct sockaddr_in address;
-    char address_string[30];
-    char name[256];
-
-    struct sockaddr_in muted[256];
-    int muted_count;
-
-    struct client_node *next;
-} client_node;
+#include "client_type.h"
 
 client_node *client_connect(client_node **head, struct sockaddr_in *new_address, char *name)
 {
