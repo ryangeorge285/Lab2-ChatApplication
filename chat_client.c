@@ -16,10 +16,24 @@ volatile int running = 1; // flag to control the running state of threads
 void *sender_thread(void *arg);
 void *listener_thread(void *arg);
 
+
 // client code
 int main(int argc, char *argv[])
 {
-    sd = udp_socket_open(0); // open a UDP socket on any available port
+
+    // checking if admin was requested
+    if(argc > 1 && strcmp(argv[1], "admin") == 0)
+    {
+        sd = udp_socket_open(6666);
+        printf("You are ADMIN on port 6666\n");
+    } 
+    else
+    {
+        sd = udp_socket_open(0); // open a UDP socket on any available port
+    }
+
+
+    
 
     // Initializing the server's address.
     // We are currently running the server on localhost (127.0.0.1).
