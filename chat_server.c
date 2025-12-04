@@ -312,6 +312,13 @@ void *handle_say(void *arg)
     pthread_rwlock_rdlock(&clients_rwlock);
 
     client_node *sender = get_client_from_address(&args->client_address);
+    if (sender == NULL)
+    {
+        pthread_rwlock_unlock(&clients_rwlock);
+        free(args);
+        return NULL;
+    }
+
     refresh_client_activity(&sender->address);
 
     client_node *connected_client = head;
@@ -355,6 +362,13 @@ void *handle_sayto(void *arg)
 
     client_node *sender = get_client_from_address(&args->client_address);
     client_node *target = get_client_by_name(args->req.name);
+    if (sender == NULL || target == NULL)
+    {
+        pthread_rwlock_unlock(&clients_rwlock);
+        free(args);
+        return NULL;
+    }
+
     refresh_client_activity(&sender->address);
 
     int is_muted = 0;
@@ -372,6 +386,7 @@ void *handle_sayto(void *arg)
         printf("Saying %s to %s\n", args->req.msg, target->name);
         snprintf(server_response, BUFFER_SIZE, "%s: %s", sender->name, args->req.msg);
         udp_socket_write(args->sd, &target->address, server_response, BUFFER_SIZE);
+        udp_socket_write(args->sd, &sender->address, server_response, BUFFER_SIZE);
     }
 
     pthread_rwlock_unlock(&clients_rwlock);
@@ -388,6 +403,13 @@ void *handle_disconnect(void *arg)
     pthread_rwlock_wrlock(&clients_rwlock);
 
     client_node *sender = get_client_from_address(&args->client_address);
+    if (sender == NULL)
+    {
+        pthread_rwlock_unlock(&clients_rwlock);
+        free(args);
+        return NULL;
+    }
+
     remove_client_from_muted_lists(&sender->address);
 
     strcpy(server_response, "Disconnected. Bye!");
@@ -411,6 +433,13 @@ void *handle_mute(void *arg)
 
     client_node *sender = get_client_from_address(&args->client_address);
     client_node *target = get_client_by_name(args->req.name);
+    if (sender == NULL || target == NULL)
+    {
+        pthread_rwlock_unlock(&clients_rwlock);
+        free(args);
+        return NULL;
+    }
+
     refresh_client_activity(&sender->address);
 
     printf("Muting %s for %s\n", target->name, sender->name);
@@ -442,6 +471,13 @@ void *handle_unmute(void *arg)
 
     client_node *sender = get_client_from_address(&args->client_address);
     client_node *target = get_client_by_name(args->req.name);
+    if (sender == NULL || target == NULL)
+    {
+        pthread_rwlock_unlock(&clients_rwlock);
+        free(args);
+        return NULL;
+    }
+
     refresh_client_activity(&sender->address);
 
     printf("Unmuting %s for %s\n", target->name, sender->name);
@@ -471,6 +507,13 @@ void *handle_rename(void *arg)
     pthread_rwlock_wrlock(&clients_rwlock);
 
     client_node *sender = get_client_from_address(&args->client_address);
+    if (sender == NULL)
+    {
+        pthread_rwlock_unlock(&clients_rwlock);
+        free(args);
+        return NULL;
+    }
+
     refresh_client_activity(&sender->address);
     if (get_client_by_name(args->req.name) != NULL)
     {
@@ -515,6 +558,14 @@ void *handle_kick(void *arg)
     }
 
     client_node *target = get_client_by_name(args->req.name);
+    if (target == NULL)
+    {
+        snprintf(server_response, BUFFER_SIZE, "Server: User %s was not found.", args->req.name);
+        udp_socket_write(args->sd, &args->client_address, server_response, BUFFER_SIZE);
+        pthread_rwlock_unlock(&clients_rwlock);
+        free(args);
+        return NULL;
+    }
 
     remove_client_from_muted_lists(&target->address);
 
