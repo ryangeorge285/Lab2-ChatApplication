@@ -15,3 +15,113 @@ This was very useful in catching errors and seeing the progress that we both wer
 In general, we communicated great and completed both assignments within 4 weeks, leaving us time to polish/comment our code and write the README.
 
 ## Testing
+
+### Basic Functions
+
+→ `conn$`
+
+![](Images/connect.png)
+
+- The output confirms that both clients were assigned their respective ports: the admin client received the reserved port 6666, and the standard client received a dynamically assigned port.
+- The server correctly communicated with each client using these ports.
+- Log files were successfully generated for each client, following the naming convention `iChat_<port>.txt`.
+
+→ `say$`
+
+![](Images/say_term.png)
+
+- Firstly `Ryan` says 'hello everyone' we can see this is recieved by the server on the left
+- Then the server responds with 'hello everyone' to both `ryan` and `sarah`
+- Responds to `ryan` as well so `ryan` is able to see his own message
+- This all can be seen within the txt files below according to the port they are connected to
+
+<p>
+  <img src="images/say_ryan.png" width="600" />
+  <img src="images/say_sarah.png" width="600" />
+</p>
+
+
+
+→ `sayto$`
+
+![](Images/sayto_term.png)
+
+<!-- this screen shot needs to change-->
+
+- The server correctly recieves the sayto
+- Server "says" to both `Grace` and `Sarah` the message
+- `Ryan` (admin) is not able to recieve this message 
+- Therefore this functions correctly
+
+<p>
+  <img src="images/sayto_ryan.png" width="450" />
+  <img src="images/sayto_sarah.png" width="450" />
+  <img src="images/sayto_grace.png" width="450" />
+</p>
+
+<!-- these screen shots needs to change-->
+
+- UI reflects this correctly as well
+
+→ `mute$` and `unmute$`
+
+![](Images/mute_unmute_term.png)
+
+
+
+- Very self explanatory
+- Server is able to recieve both the commands and carry them out accordingly
+- `Ryan` can be seen trying to communicate with `Sarah` but is unable to until he is unmuted 
+
+<p>
+  <img src="images/sarah_mute.png" width="650" />
+  <img src="images/ryan_mute.png" width="650" />
+</p>
+
+→ `rename$`
+
+![](Images/rename_term.png)
+
+- We can see `Sarah` change her name to `Grace` and this reflected in the txt files
+- The server also tells also what our name has changed to
+
+
+<p>
+  <img src="images/rename_ryan.png" width="650" />
+  <img src="images/rename_sarah.png" width="650" />
+</p>
+
+
+→ `disconn$`
+
+![](Images/disconn_term.png)
+
+- Can see kills chat client
+
+<p>
+  <img src="images/disconn_ryan.png" width="650" />
+  <img src="images/disconn_sarah.png" width="650" />
+</p>
+
+
+→ `kick$`
+
+<!-- something noticed while testing when we kick them we should let them be able to disconnect maybe?
+discuss with ryan-->
+
+
+![](Images/kick_term.png)
+
+- We can see that only the admin is allowed to kick
+- The client without admin privelege also gets a warning for doing this
+- We can see although the server recieves the messages it does nothing with these
+- txt files dont change once `Sarah` is kicked
+
+
+<p>
+  <img src="images/kick_ryan.png" width="650" />
+  <img src="images/kick_sarah.png" width="650" />
+</p>
+
+
+
