@@ -36,8 +36,8 @@ In general, we communicated great and completed both assignments within 4 weeks,
 - This all can be seen within the txt files below according to the port they are connected to
 
 <p>
-  <img src="images/say_ryan.png" width="600" />
-  <img src="images/say_sarah.png" width="600" />
+  <img src="/Images/say_ryan.png" width="600" />
+  <img src="/Images/say_sarah.png" width="600" />
 </p>
 
 
@@ -54,9 +54,9 @@ In general, we communicated great and completed both assignments within 4 weeks,
 - Therefore this functions correctly
 
 <p>
-  <img src="images/sayto_ryan.png" width="450" />
-  <img src="images/sayto_sarah.png" width="450" />
-  <img src="images/sayto_grace.png" width="450" />
+  <img src="/Images/sayto_ryan.png" width="450" />
+  <img src="/Images/sayto_sarah.png" width="450" />
+  <img src="/Images/sayto_grace.png" width="450" />
 </p>
 
 <!-- these screen shots needs to change-->
@@ -74,8 +74,8 @@ In general, we communicated great and completed both assignments within 4 weeks,
 - `Ryan` can be seen trying to communicate with `Sarah` but is unable to until he is unmuted 
 
 <p>
-  <img src="images/sarah_mute.png" width="650" />
-  <img src="images/ryan_mute.png" width="650" />
+  <img src="/Images/sarah_mute.png" width="650" />
+  <img src="/Images/ryan_mute.png" width="650" />
 </p>
 
 → `rename$`
@@ -87,8 +87,8 @@ In general, we communicated great and completed both assignments within 4 weeks,
 
 
 <p>
-  <img src="images/rename_ryan.png" width="650" />
-  <img src="images/rename_sarah.png" width="650" />
+  <img src="/Images/rename_ryan.png" width="650" />
+  <img src="/Images/rename_sarah.png" width="650" />
 </p>
 
 
@@ -99,8 +99,8 @@ In general, we communicated great and completed both assignments within 4 weeks,
 - Can see kills chat client
 
 <p>
-  <img src="images/disconn_ryan.png" width="650" />
-  <img src="images/disconn_sarah.png" width="650" />
+  <img src="/Images/disconn_ryan.png" width="650" />
+  <img src="/Images/disconn_sarah.png" width="650" />
 </p>
 
 
@@ -119,8 +119,8 @@ discuss with ryan-->
 
 
 <p>
-  <img src="images/kick_ryan.png" width="650" />
-  <img src="images/kick_sarah.png" width="650" />
+  <img src="/Images/kick_ryan.png" width="650" />
+  <img src="/Images/kick_sarah.png" width="650" />
 </p>
 
 
