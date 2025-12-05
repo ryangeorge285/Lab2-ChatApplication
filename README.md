@@ -14,7 +14,9 @@ Like the first project, we extensively used git to source control our work and u
 This was very useful in catching errors and seeing the progress that we both were completing. As before, any bugs that appeared first time for example, could be usually pinpointed by `git diff` with the previous commit hash (-y really helps).  
 In general, we communicated great and completed both assignments within 4 weeks, leaving us time to polish/comment our code and write the README.
 
-## Testing
+## Features
+
+We implemented the entire requirements and extensions of the program. Then any quality of life features we added to allow the program to be easier to use. This includes the ability to pass the parameter admin to the chat client to set it to admin mode and a couple more.
 
 ### Basic Functions
 
