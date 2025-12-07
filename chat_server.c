@@ -50,6 +50,7 @@ int main(int argc, char *argv[])
     server_socket = sd;
 
     pthread_t monitor_tid;
+    // Starts monitoring the jjjjjnactive clients
     pthread_create(&monitor_tid, NULL, monitor_inactivity, NULL);
     pthread_detach(monitor_tid);
 
@@ -68,6 +69,8 @@ int main(int argc, char *argv[])
 
             request current_request;
             parse_input(client_request, &current_request);
+
+            // Now that we have received a request, initialise the thread parameters and start the thread with the correct helper function
 
             pthread_t tid;
             thread_args *args = malloc(sizeof(thread_args));
@@ -130,11 +133,13 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+// Helper function thats compares address
 int addr_equal(struct sockaddr_in *a, struct sockaddr_in *b)
 {
     return a->sin_addr.s_addr == b->sin_addr.s_addr && a->sin_port == b->sin_port;
 }
 
+// Helper function that returns the node of a client from a name
 client_node *get_client_by_name(char *name)
 {
     client_node *client = head;
@@ -147,6 +152,7 @@ client_node *get_client_by_name(char *name)
     return NULL;
 }
 
+// Helper function that returns the node of a client from an address
 client_node *get_client_from_address(struct sockaddr_in *addr)
 {
     client_node *connected_client = head;
@@ -161,6 +167,7 @@ client_node *get_client_from_address(struct sockaddr_in *addr)
     return NULL;
 }
 
+// Helper function which loops through all clients and deletes all references to a certain clients address in the muted list as they are about to be kicked
 void remove_client_from_muted_lists(struct sockaddr_in *target_addr)
 {
     client_node *client = head;
@@ -181,17 +188,20 @@ void remove_client_from_muted_lists(struct sockaddr_in *target_addr)
     }
 }
 
+// Inactivity thread monitoring
+// Refreshes the stored activity time for a client
 void refresh_client_activity(struct sockaddr_in *address)
 {
     connection_status_update(address, time(NULL));
 }
 
+// Handles a new client connecting to the server
 void *handle_connection(void *arg)
 {
     thread_args *args = (thread_args *)arg;
     char server_response[BUFFER_SIZE];
 
-    pthread_rwlock_wrlock(&clients_rwlock);
+    pthread_rwlock_wrlock(&clients_rwlock); // Protect linked list
 
     client_node *new_client = client_connect(&head, &args->client_address, args->req.name);
     client_connection_status status = {.address = &new_client->address, .last_ping = time(NULL)};
@@ -207,6 +217,7 @@ void *handle_connection(void *arg)
         snprintf(server_response, BUFFER_SIZE, "Previous %i messages:\n", count);
 
     udp_socket_write(args->sd, &args->client_address, server_response, BUFFER_SIZE);
+    // Sends the stored messages back to the newly connected client
     for (int i = 0; i < count; ++i)
     {
         udp_socket_write(args->sd, &args->client_address, msgs[i], RMB_BUFFER_SIZE);
@@ -218,12 +229,14 @@ void *handle_connection(void *arg)
     return NULL;
 }
 
+// Handles the client's response to a server ping
 void *handle_ret_ping(void *arg)
 {
     thread_args *args = (thread_args *)arg;
 
     pthread_rwlock_rdlock(&clients_rwlock);
 
+    // Update the last ping time when a client answers
     client_node *client = get_client_from_address(&args->client_address);
     if (client != NULL)
     {
@@ -236,10 +249,12 @@ void *handle_ret_ping(void *arg)
     return NULL;
 }
 
+// Background loop that disconnects inactive clients
 void *monitor_inactivity(void *arg)
 {
     while (1)
     {
+        // Check the client that has sent nothign for the longest time
         client_connection_status *status = top();
         if (status == NULL)
         {
@@ -257,6 +272,7 @@ void *monitor_inactivity(void *arg)
             continue;
         }
 
+        // ping to check if they are inactive or not
         char ping_message[BUFFER_SIZE];
         strcpy(ping_message, "ping$");
         udp_socket_write(server_socket, inactive_addr, ping_message, BUFFER_SIZE);
@@ -290,6 +306,7 @@ void *monitor_inactivity(void *arg)
             connection_status_delete(inactive_addr);
             client_delete(&head, inactive_client->name);
 
+            // Notifies everyone that the client has been removed
             client_node *client = head;
             while (client != NULL)
             {
@@ -304,6 +321,7 @@ void *monitor_inactivity(void *arg)
     return NULL;
 }
 
+// Broadcasts a message to all clients who have not muted the sender
 void *handle_say(void *arg)
 {
     thread_args *args = (thread_args *)arg;
@@ -321,6 +339,7 @@ void *handle_say(void *arg)
 
     refresh_client_activity(&sender->address);
 
+    // Loop through all connected clients and send the message if not muted
     client_node *connected_client = head;
     while (connected_client != NULL)
     {
@@ -353,6 +372,7 @@ void *handle_say(void *arg)
     return NULL;
 }
 
+// Handles messages between two specific clients
 void *handle_sayto(void *arg)
 {
     thread_args *args = (thread_args *)arg;
@@ -371,6 +391,7 @@ void *handle_sayto(void *arg)
 
     refresh_client_activity(&sender->address);
 
+    // Skip sending if the target has muted the sender
     int is_muted = 0;
     for (int i = 0; i < target->muted_count; i++)
     {
@@ -395,6 +416,7 @@ void *handle_sayto(void *arg)
     return NULL;
 }
 
+// Disconnects a client from the server
 void *handle_disconnect(void *arg)
 {
     thread_args *args = (thread_args *)arg;
@@ -410,6 +432,7 @@ void *handle_disconnect(void *arg)
         return NULL;
     }
 
+    // Remove any mute references before deleting the user
     remove_client_from_muted_lists(&sender->address);
 
     strcpy(server_response, "Disconnected. Bye!");
@@ -424,6 +447,7 @@ void *handle_disconnect(void *arg)
     return NULL;
 }
 
+// Adds a user to the sender's muted list
 void *handle_mute(void *arg)
 {
     thread_args *args = (thread_args *)arg;
@@ -442,6 +466,7 @@ void *handle_mute(void *arg)
 
     refresh_client_activity(&sender->address);
 
+    // Avoid duplicating an entry in the mute list
     printf("Muting %s for %s\n", target->name, sender->name);
     for (int i = 0; i < sender->muted_count; i++)
     {
@@ -462,6 +487,7 @@ void *handle_mute(void *arg)
     return NULL;
 }
 
+// Removes a user from the sender's muted list
 void *handle_unmute(void *arg)
 {
     thread_args *args = (thread_args *)arg;
@@ -480,6 +506,7 @@ void *handle_unmute(void *arg)
 
     refresh_client_activity(&sender->address);
 
+    // Updatethe muted list to remove all matches
     printf("Unmuting %s for %s\n", target->name, sender->name);
     for (int i = 0; i < sender->muted_count; i++)
     {
@@ -499,6 +526,7 @@ void *handle_unmute(void *arg)
     return NULL;
 }
 
+// Changes a client's display name, doesnt change much as clients are identified by address
 void *handle_rename(void *arg)
 {
     thread_args *args = (thread_args *)arg;
@@ -517,6 +545,7 @@ void *handle_rename(void *arg)
     refresh_client_activity(&sender->address);
     if (get_client_by_name(args->req.name) != NULL)
     {
+        // Do not allow two clients to share the same name
         snprintf(server_response, BUFFER_SIZE, "Server: The name %s is already taken.", args->req.name);
         udp_socket_write(args->sd, &args->client_address, server_response, BUFFER_SIZE);
 
@@ -536,6 +565,7 @@ void *handle_rename(void *arg)
     return NULL;
 }
 
+// Forcefully removes a client from the server (admin only)
 void *handle_kick(void *arg)
 {
     thread_args *args = (thread_args *)arg;
@@ -546,6 +576,7 @@ void *handle_kick(void *arg)
     client_node *sender = get_client_from_address(&args->client_address);
     refresh_client_activity(&sender->address);
 
+    // Only the admin port can execute kicks
     if (ntohs(args->client_address.sin_port) != 6666)
     {
         char server_response[BUFFER_SIZE];

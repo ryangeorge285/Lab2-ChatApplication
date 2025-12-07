@@ -26,8 +26,10 @@ typedef struct
     char msg[512];
 } request;
 
+// Parses the raw input string into a request struct
 void parse_input(const char *input, request *r)
 {
+    // Clear out the request so we can fill it with the parsed data
     r->type = REQ_INVALID;
     r->name[0] = '\0';
     r->msg[0] = '\0';

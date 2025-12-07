@@ -14,11 +14,13 @@ int recent_message_buffer_head = 0;
 int messages_present = 0;
 pthread_rwlock_t recent_message_buffer_lock;
 
+// Sets up the lock for the buffer
 void rmb_init()
 {
     pthread_rwlock_init(&recent_message_buffer_lock, NULL);
 }
 
+// Adds a message to the circular buffer
 void rmb_add_message(char *message)
 {
     pthread_rwlock_wrlock(&recent_message_buffer_lock);
@@ -31,6 +33,7 @@ void rmb_add_message(char *message)
     pthread_rwlock_unlock(&recent_message_buffer_lock);
 }
 
+// Copies all currently stored messages into the provided array
 int rmb_get_messages(char arr[][RMB_BUFFER_SIZE])
 {
     pthread_rwlock_rdlock(&recent_message_buffer_lock);

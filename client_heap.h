@@ -37,7 +37,7 @@ void connections_status_insert(client_connection_status val)
     }
 }
 
-// Deletes a kicked or disconnected client from the linked list
+// Deletes a kicked or disconnected client from the heap
 void connection_status_delete(struct sockaddr_in *address)
 {
     int index = -1;
@@ -91,7 +91,7 @@ void connection_status_delete(struct sockaddr_in *address)
     }
 }
 
-// Finds the client that was heard from the longest time ago
+// Returns the top of the min heap
 client_connection_status *top()
 {
     if (num_clients > 0)
@@ -99,7 +99,7 @@ client_connection_status *top()
     return NULL;
 }
 
-// Returns the connection status based on an address
+// Looks up a client by address in the heap array
 client_connection_status *connection_status_find(struct sockaddr_in *address)
 {
     for (int i = 0; i < num_clients; i++)
@@ -110,7 +110,7 @@ client_connection_status *connection_status_find(struct sockaddr_in *address)
     return NULL;
 }
 
-// When a successful ping has been made, update the ping
+// Refreshes a client's last_ping by deleting then reinserting
 void connection_status_update(struct sockaddr_in *address, time_t last_ping)
 {
     connection_status_delete(address);
