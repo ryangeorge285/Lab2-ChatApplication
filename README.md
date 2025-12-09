@@ -16,7 +16,15 @@ In general, we communicated great and completed both assignments within 4 weeks,
 
 ## Features
 
-We implemented the entire requirements and extensions of the program. Then any quality of life features we added to allow the program to be easier to use. This includes the ability to pass the parameter admin to the chat client to set it to admin mode and a couple more.
+In this assignment, we successfully implemented a multithreaded chat application with full client-server communication over UDP. Each client binds to a unique port and runs two threads: a sender thread for user input and a listener thread for server responses, supporting all request types including broadcasting messages, private messaging, muting/unmuting clients, renaming, disconnecting, and admin kicking. The server listens on port 12000, maintains a thread-safe linked list of clients using reader-writer locks, and spawns threads to handle each client request simultaneously. Both proposed extensions were fully implemented: a circular buffer stores the last 15 broadcast messages, allowing new clients to see chat history upon connection, and a monitoring mechanism removes inactive clients after a timeout using thread-safe timestamp tracking.
+
+Extras:
+- Added debug functionality
+- Helper functions added such as input parse function and more
+- UI uses multiple text files with names relating to their port
+  - Admin gets their own specific port number as well
+  - To use the ui one person will have chat client running on one side and the using command `tail -f iChat_[Port_Number].txt` will be able to view the chat in real time
+
 
 ### Basic Functions
 
@@ -125,5 +133,5 @@ discuss with ryan-->
   <img src="/Images/kick_sarah.png" width="650" />
 </p>
 
-
+### Extensions
 
