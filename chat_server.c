@@ -435,11 +435,24 @@ void *handle_disconnect(void *arg)
     // Remove any mute references before deleting the user
     remove_client_from_muted_lists(&sender->address);
 
+    // Cache the name before deleting the node
+    char disconnected_name[256];
+    strcpy(disconnected_name, sender->name);
+
     strcpy(server_response, "Disconnected. Bye!");
     udp_socket_write(args->sd, &sender->address, server_response, BUFFER_SIZE);
 
     connection_status_delete(&sender->address);
     client_delete(&head, sender->name);
+
+    // Notify remaining clients that the user left
+    snprintf(server_response, BUFFER_SIZE, "Server: %s has disconnected.", disconnected_name);
+    client_node *client = head;
+    while (client != NULL)
+    {
+        udp_socket_write(args->sd, &client->address, server_response, BUFFER_SIZE);
+        client = client->next;
+    }
 
     pthread_rwlock_unlock(&clients_rwlock);
 
