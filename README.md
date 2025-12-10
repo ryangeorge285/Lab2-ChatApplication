@@ -1,6 +1,6 @@
 # Lab 2 - Multithreaded Chat Application
 
-_Ryan George and Rishabh Rastogi_  
+_Ryan George(02581757) & Rishabh Rastogi(02555762) - Sir Tuff and Mr Tuff_  
 Our implementation of a C based chat application, completing all the proposed extensions and thoroughly tested.
 
 ## Features
