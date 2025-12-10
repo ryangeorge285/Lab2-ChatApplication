@@ -300,7 +300,7 @@ void *monitor_inactivity(void *arg)
         {
             char server_response[BUFFER_SIZE];
             snprintf(server_response, BUFFER_SIZE, "Server: %s has been disconnected due to inactivity.", inactive_client->name);
-            printf(server_response);
+            printf("%s\n", server_response);
             udp_socket_write(server_socket, &inactive_client->address, "Disconnected due to inactivity", BUFFER_SIZE);
             remove_client_from_muted_lists(&inactive_client->address);
             connection_status_delete(inactive_addr);
