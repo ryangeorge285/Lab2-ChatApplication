@@ -27,6 +27,10 @@ int main(int argc, char *argv[])
         sd = udp_socket_open(6666);
         printf("You are ADMIN on port 6666\n");
     } 
+    else if (argc >1)
+    {
+        sd = udp_socket_open(atoi(argv[1]));
+    }
     else
     {
         sd = udp_socket_open(0); // open a UDP socket on any available port
@@ -100,7 +104,7 @@ void *listener_thread(void *arg)
                 fclose(fp);
             }
 
-            // this is just for debugging purposes
+            //this is just for debugging purposes
             //printf("%s\n", server_response);
         }
     }

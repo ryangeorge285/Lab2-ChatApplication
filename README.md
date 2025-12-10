@@ -3,17 +3,6 @@
 _Ryan George and Rishabh Rastogi_  
 Our implementation of a C based chat application, completing all the proposed extensions and thoroughly tested.
 
-## Development
-
-The development process we naturally followed was iterative and prototype based, where we completed incremental prototypes and tested along the way. This can be seen in our git commits, implementing and evaluating small changes till it met the project requirements. For this project, we split the work into three: Chat Server (Ryan), Chat Client (Rishabh) and Testing (Rishabh).
-
-The client was quite small and relatively simple, so we placed an emphasis on polishing the server so it has full functionality and has safeguards to eliminate undefined behaviour especially with NULL pointers, handling the heap and invalid requests from clients. This was done in both development and testing.
-
-Like the first project, we extensively used git to source control our work and used Github as our remote:
-<img src="/Images/commits.png" width="276" height="294">  
-This was very useful in catching errors and seeing the progress that we both were completing. As before, any bugs that appeared first time for example, could be usually pinpointed by `git diff` with the previous commit hash (-y really helps).  
-In general, we communicated great and completed both assignments within 4 weeks, leaving us time to polish/comment our code and write the README.
-
 ## Features
 
 In this assignment, we successfully implemented a multithreaded chat application with full client-server communication over UDP. Each client binds to a unique port and runs two threads: a sender thread for user input and a listener thread for server responses, supporting all the following requests:
@@ -31,13 +20,29 @@ The server binds to UDP port 12000, maintains a synchronised linked list of clie
 
 Both proposed extensions were fully implemented: a circular buffer stores the last 15 broadcast messages, allowing new clients to see chat history upon connection, and a monitoring mechanism removes inactive clients after a certain amount of time.  
   - [Extensions](#extensions)
+    - PE2: In our implementation, the client automatically responds with a `retping$` whenever the server sends a `ping$`, as long as the chat client is running.
 
 Extras:
 - Added debug functionality
 - Helper functions added such as input parse function and more
 - UI uses multiple text files with names relating to their port
   - Admin gets their own specific port number as well
+  - Can connect to a specific port if needed
   - To use the ui one person will have chat client running on one side and the using command `tail -f iChat_[Port_Number].txt` will be able to view the chat in real time
+
+
+
+## Development
+
+The development process we naturally followed was iterative and prototype based, where we completed incremental prototypes and tested along the way. This can be seen in our git commits, implementing and evaluating small changes till it met the project requirements. For this project, we split the work into three: Chat Server (Ryan), Chat Client (Rishabh) and Testing (Rishabh).
+
+The client was quite small and relatively simple, so we placed an emphasis on polishing the server so it has full functionality and has safeguards to eliminate undefined behaviour especially with NULL pointers, handling the heap and invalid requests from clients. This was done in both development and testing.
+
+Like the first project, we extensively used git to source control our work and used Github as our remote:
+<img src="/Images/commits.png" width="276" height="294">  
+This was very useful in catching errors and seeing the progress that we both were completing. As before, any bugs that appeared first time for example, could be usually pinpointed by `git diff` with the previous commit hash (-y really helps).  
+In general, we communicated great and completed both assignments within 4 weeks, leaving us time to polish/comment our code and write the README.
+
 
 
 ### Basic Functions
@@ -169,3 +174,8 @@ discuss with ryan-->
 
 
 #### Remove Inactive Clients
+
+![](Images/inactive.png)
+
+- As we can see after a certain amount of time `grass_grace_grape_sarah_ryan` disconnects from the server once their chat client terminates
+

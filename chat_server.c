@@ -11,7 +11,7 @@
 #include "client_heap.h"
 
 #define RMB_BUFFER_SIZE 512
-#define INACTIVITY_THRESHOLD_SECONDS 5 * 60
+#define INACTIVITY_THRESHOLD_SECONDS 10
 #define PING_RESPONSE_WAIT_SECONDS 5
 
 client_node *head = NULL;
