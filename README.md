@@ -133,5 +133,22 @@ discuss with ryan-->
   <img src="/Images/kick_sarah.png" width="650" />
 </p>
 
+
+
+
 ### Extensions
 
+#### History
+
+![](Images/history_term.png)
+
+
+- We can clearly see that `Grace` is able to recieve the last 15 messages as shown below
+- We can also clearly see above when `Sarah` joins that she doesn't get the first hello
+- The UI is also able to account for this as we can see the text files get the last 15 messages
+
+<p>
+  <img src="/Images/history_ryan.png" width="450" />
+  <img src="/Images/history_sarah.png" width="450" />
+  <img src="/Images/history_grace.png" width="450" />
+</p>

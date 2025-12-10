@@ -100,7 +100,8 @@ void *listener_thread(void *arg)
                 fclose(fp);
             }
 
-            printf("%s\n", server_response);
+            // this is just for debugging purposes
+            //printf("%s\n", server_response);
         }
     }
     return NULL;
