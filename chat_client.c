@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
         sd = udp_socket_open(6666);
         printf("You are ADMIN on port 6666\n");
     } 
-    else if (argc >1)
+    else if (argc >1 && atoi(argv[1]) > 999)
     {
         sd = udp_socket_open(atoi(argv[1]));
     }
