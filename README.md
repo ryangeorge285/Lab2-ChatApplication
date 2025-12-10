@@ -16,7 +16,21 @@ In general, we communicated great and completed both assignments within 4 weeks,
 
 ## Features
 
-In this assignment, we successfully implemented a multithreaded chat application with full client-server communication over UDP. Each client binds to a unique port and runs two threads: a sender thread for user input and a listener thread for server responses, supporting all request types including broadcasting messages, private messaging, muting/unmuting clients, renaming, disconnecting, and admin kicking. The server listens on port 12000, maintains a thread-safe linked list of clients using reader-writer locks, and spawns threads to handle each client request simultaneously. Both proposed extensions were fully implemented: a circular buffer stores the last 15 broadcast messages, allowing new clients to see chat history upon connection, and a monitoring mechanism removes inactive clients after a timeout using thread-safe timestamp tracking.
+In this assignment, we successfully implemented a multithreaded chat application with full client-server communication over UDP. Each client binds to a unique port and runs two threads: a sender thread for user input and a listener thread for server responses, supporting all the following requests:
+
+  - `say$`
+  - `sayto$`
+  - `mute$`
+  - `unmute$`
+  - `rename$`
+  - `disconn$`
+  - `kick$`
+    - Upon run chat client user can put admin to recieve port number 6666 and gain the privilege to kick
+
+The server binds to UDP port 12000, maintains a synchronised linked list of clients using reader–writer locks, and spawns a separate thread to handle each incoming request simultaneously.
+
+Both proposed extensions were fully implemented: a circular buffer stores the last 15 broadcast messages, allowing new clients to see chat history upon connection, and a monitoring mechanism removes inactive clients after a certain amount of time.  
+  - [Extensions](#extensions)
 
 Extras:
 - Added debug functionality
@@ -152,3 +166,6 @@ discuss with ryan-->
   <img src="/Images/history_sarah.png" width="450" />
   <img src="/Images/history_grace.png" width="450" />
 </p>
+
+
+#### Remove Inactive Clients
